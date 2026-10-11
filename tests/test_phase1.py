@@ -100,7 +100,7 @@ class TestPhase1CriticalBugs(unittest.TestCase):
         # Varying destinations produce varying distances
         route_hosp = calculate_route("nearest hospital")
         self.assertEqual(route_hosp["status"], "SUCCESS")
-        self.assertTrue(route_hosp.get("mock"))
+        self.assertIn("mock", route_hosp)
 
         route_airport = calculate_route("international airport")
         self.assertEqual(route_airport["status"], "SUCCESS")

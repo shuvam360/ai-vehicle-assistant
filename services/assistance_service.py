@@ -1,6 +1,25 @@
 import re
 
 INTENT_RULES = {
+    "RISK_ANALYSIS": {
+        "phrases": [
+            r"\bis it safe to drive\b",
+            r"\bany risks\b",
+            r"\bany risk\b",
+            r"\bwhat are the risks\b",
+            r"\brisk analysis\b",
+            r"\brisk assessment\b",
+            r"\bsafety assessment\b",
+            r"\banalyze risks\b",
+            r"\bcan i drive safely\b"
+        ],
+        "words": [
+            r"\brisk\b",
+            r"\brisks\b",
+            r"\bhazard\b",
+            r"\bhazards\b"
+        ]
+    },
     "NAVIGATION": {
         "phrases": [
             r"\bnearest hospital\b",
@@ -34,7 +53,6 @@ INTENT_RULES = {
     "SAFETY": {
         "phrases": [
             r"\bis my (?:car|vehicle) safe\b",
-            r"\bis it safe to drive\b",
             r"\bsafety status\b",
             r"\bsafety risk\b",
             r"\brisk level\b"
@@ -42,11 +60,8 @@ INTENT_RULES = {
         "words": [
             r"\bsafe\b",
             r"\bsafety\b",
-            r"\brisk\b",
-            r"\brisks\b",
             r"\bdanger\b",
-            r"\bdangerous\b",
-            r"\bhazard\b"
+            r"\bdangerous\b"
         ]
     },
     "ALERTS": {
@@ -173,11 +188,27 @@ def generate_response(
     navigation=None
 ):
     health = health or {"health_score": 100, "overall_status": "HEALTHY", "warnings": []}
-    safety = safety or {"risk_level": "LOW", "risks": []}
+    safety = safety or {"risk_level": "LOW", "risks": [], "flags": []}
     alerts = alerts or []
 
+    if intent == "RISK_ANALYSIS":
+        risk_level = (safety.get("risk_level") or "LOW").upper()
+        risks = safety.get("risks", [])
+
+        if risk_level == "CRITICAL":
+            reason = " ".join(risks) if risks else "Critical hazards detected on primary systems."
+            return f"Emergency alert. Your current risk level is critical. {reason} Please stop the vehicle safely right away."
+        elif risk_level == "HIGH":
+            reason = " ".join(risks) if risks else "Safety concerns detected."
+            return f"Warning. Your current risk level is high. {reason} Please reduce speed and proceed with caution."
+        elif risk_level == "MEDIUM":
+            reason = " ".join(risks) if risks else "Moderate risks observed."
+            return f"Caution. Your current risk level is medium. {reason} Please stay attentive to road conditions."
+        else:
+            return "Your current risk level is low. All systems are operating normally, and it is safe to drive."
+
     if intent == "VEHICLE_HEALTH":
-        score = health.get("health_score", 100)
+        score = health.get("overall_score", health.get("health_score", 100))
         status = health.get("overall_status", "HEALTHY")
         warnings = health.get("warnings", [])
 
@@ -233,10 +264,10 @@ def generate_response(
     if intent == "CLARIFICATION":
         return (
             "I could not determine your specific request with certainty. "
-            "Could you clarify if you want navigation, vehicle health, safety status, or alerts?"
+            "Could you clarify if you want risk analysis, navigation, vehicle health, or alerts?"
         )
 
     return (
         "I can help with vehicle health, safety, "
-        "alerts, and navigation."
+        "risk analysis, alerts, and navigation."
     )

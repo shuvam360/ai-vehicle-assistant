@@ -12,9 +12,14 @@ from services.assistance_service import (
     extract_destination
 )
 from services.navigate_service import calculate_route
-from services.vehicle_service import get_vehicle_data
+from services.vehicle_service import get_vehicle_data, set_scenario
 from services.health_service import calculate_vehicle_health
-from services.db_service import init_db, record_request, record_alerts
+from services.db_service import (
+    init_db,
+    record_request,
+    record_alerts,
+    get_recent_vehicle_events
+)
 
 # Configure logging
 logging.basicConfig(
@@ -85,21 +90,26 @@ def health_status():
         "message": "AI Vehicle Assistant is healthy and operational."
     })
 
+@app.route("/api/safety")
 @app.route("/api/safety/status")
 def safety_status():
     vehicle = get_vehicle_data()
     safety = analyze_safety(vehicle)
+    events = get_recent_vehicle_events(limit=10)
 
     record_request(
         g.request_id,
-        "/api/safety/status",
+        "/api/safety",
         request.method,
         risk_level=safety.get("risk_level")
     )
 
     return jsonify({
-        "vehicle": vehicle,
-        "safety": safety
+        "risk_level": safety.get("risk_level", "LOW"),
+        "flags": safety.get("flags", []),
+        "events": events,
+        "safety": safety,
+        "vehicle": vehicle
     })
 
 @app.route("/api/alerts")
@@ -138,8 +148,57 @@ def vehicle_health():
     record_request(g.request_id, "/api/vehicle/health", request.method)
 
     return jsonify({
+        "overall_score": health["overall_score"],
+        "overall_status": health["overall_status"],
+        "component_scores": health["components"],
+        "components": health["components"],
+        "metrics": vehicle,
         "vehicle": vehicle,
         "health": health
+    })
+
+@app.route("/api/demo/scenario", methods=["POST"])
+def demo_scenario():
+    """Triggers telemetry test scenarios. Only accessible when DEMO_MODE=1."""
+    if os.environ.get("DEMO_MODE") != "1":
+        return jsonify({
+            "error": "Forbidden",
+            "message": "Demo mode is disabled. Set DEMO_MODE=1 to enable."
+        }), 403
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({
+            "error": "Bad Request",
+            "message": "Invalid JSON body provided."
+        }), 400
+
+    scenario = data.get("scenario", "").strip().lower()
+    if not scenario:
+        return jsonify({
+            "error": "Bad Request",
+            "message": "Field 'scenario' is required."
+        }), 400
+
+    success = set_scenario(scenario)
+    if not success:
+        return jsonify({
+            "error": "Bad Request",
+            "message": f"Unknown scenario: {scenario}"
+        }), 400
+
+    vehicle = get_vehicle_data()
+    record_request(
+        g.request_id,
+        "/api/demo/scenario",
+        request.method,
+        message=f"Scenario switched to {scenario}"
+    )
+
+    return jsonify({
+        "status": "SUCCESS",
+        "scenario": scenario,
+        "vehicle": vehicle
     })
 
 @app.route("/api/assistant/query", methods=["POST"])

@@ -2,6 +2,17 @@ import os
 import re
 import requests
 
+KOLKATA_START = [88.3639, 22.5726]  # [longitude, latitude]
+
+KNOWN_KOLKATA_LOCATIONS = {
+    "hospital": [88.3426, 22.5393],       # SSKM Hospital, Kolkata
+    "nearest hospital": [88.3426, 22.5393],
+    "airport": [88.4467, 22.6547],        # Netaji Subhash Chandra Bose Int Airport
+    "station": [88.3433, 22.5855],        # Howrah Railway Station
+    "fuel": [88.3524, 22.5531],           # BPCL Station Park Street
+    "gas": [88.3524, 22.5531]
+}
+
 UNRESOLVABLE_DESTINATIONS = {
     "moon",
     "the moon",
@@ -63,63 +74,99 @@ def is_unresolvable_destination(destination_name):
     normalized = destination_name.lower().strip()
     if normalized in UNRESOLVABLE_DESTINATIONS:
         return True
-    
-    # Check if string matches fictitious or celestial patterns
+
     for term in UNRESOLVABLE_DESTINATIONS:
         if re.search(rf"\b{re.escape(term)}\b", normalized):
             return True
 
     return False
 
-def _calculate_mock_route(cleaned):
-    """Generates a dynamic mock route varying with destination."""
-    dest_lower = cleaned.lower()
+def _resolve_coordinates(destination_name):
+    """Resolves target coordinates using Nominatim/Overpass or known Kolkata landmarks."""
+    dest_lower = destination_name.lower()
 
-    if "hospital" in dest_lower:
-        dist = 3.4
-        time_mins = 8
-        steps = [
-            "Start from current location",
-            "Take the nearest expressway ramp towards Medical Center",
-            "Follow Emergency Services signs",
-            f"Arrive at {cleaned}"
-        ]
-    elif "airport" in dest_lower:
-        dist = 28.5
-        time_mins = 35
-        steps = [
-            "Start from current location",
-            "Head north on Highway 101",
-            "Take Terminal exit 14B",
-            f"Arrive at {cleaned} Departures"
-        ]
-    elif "gas" in dest_lower or "fuel" in dest_lower or "station" in dest_lower:
-        dist = 1.8
-        time_mins = 5
-        steps = [
-            "Start from current location",
-            "Turn right onto 4th Avenue",
-            "Drive 1.2 km past the junction",
-            f"Arrive at {cleaned}"
-        ]
-    else:
-        hash_val = sum(ord(c) for c in cleaned)
-        dist = round(2.5 + (hash_val % 30) + ((hash_val % 7) * 0.3), 1)
-        time_mins = max(5, int((dist / 35.0) * 60))
-        steps = [
-            "Start from current location",
-            f"Continue straight for {round(dist * 0.4, 1)} km",
-            "Turn right at Main Crossing",
-            f"Continue for {round(dist * 0.6, 1)} km",
-            f"Arrive at {cleaned}"
-        ]
+    # Check for known local landmarks / place-type searches first
+    for key, coords in KNOWN_KOLKATA_LOCATIONS.items():
+        if key in dest_lower:
+            return coords
+
+    # Attempt Nominatim geocode with strict timeout
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": f"{destination_name}, Kolkata",
+            "format": "json",
+            "limit": 1
+        }
+        headers = {"User-Agent": "VehicleAssistant/1.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            results = resp.json()
+            if results:
+                lat = float(results[0]["lat"])
+                lon = float(results[0]["lon"])
+                return [lon, lat]
+    except Exception:
+        pass
+
+    # Deterministic coordinate offset around Kolkata
+    hash_val = sum(ord(c) for c in destination_name)
+    d_lon = ((hash_val % 50) - 25) * 0.003
+    d_lat = ((hash_val % 40) - 20) * 0.003
+    return [round(KOLKATA_START[0] + d_lon, 4), round(KOLKATA_START[1] + d_lat, 4)]
+
+def _get_mock_navigation(cleaned, end_coords):
+    """Generates a labelled mock route with primary and alternative options."""
+    hash_val = sum(ord(c) for c in cleaned)
+    dist1 = round(3.5 + (hash_val % 20) * 0.4, 1)
+    dur1 = max(6, int((dist1 / 30.0) * 60))
+
+    dist2 = round(dist1 + 1.2, 1)
+    dur2 = dur1 + 4
+
+    start_lon, start_lat = KOLKATA_START
+    end_lon, end_lat = end_coords
+
+    mid1 = [round((start_lon + end_lon) / 2 + 0.002, 4), round((start_lat + end_lat) / 2 - 0.001, 4)]
+    mid2 = [round((start_lon + end_lon) / 2 - 0.003, 4), round((start_lat + end_lat) / 2 + 0.002, 4)]
+
+    primary_geom = [KOLKATA_START, mid1, end_coords]
+    alt_geom = [KOLKATA_START, mid2, end_coords]
+
+    traffic_label = "MODERATE" if dist1 > 5 else "LIGHT"
+
+    primary = {
+        "distance_km": dist1,
+        "duration_min": dur1,
+        "geometry": primary_geom
+    }
+
+    alternatives = [
+        {
+            "distance_km": dist2,
+            "duration_min": dur2,
+            "geometry": alt_geom
+        }
+    ]
+
+    steps = [
+        f"Start from Kolkata current position ({KOLKATA_START[0]}, {KOLKATA_START[1]})",
+        f"Proceed along primary corridor for {round(dist1 * 0.6, 1)} km",
+        "Turn towards destination avenue",
+        f"Arrive at {cleaned}"
+    ]
 
     return {
         "status": "SUCCESS",
         "mock": True,
         "destination": cleaned,
-        "distance_km": dist,
-        "estimated_time_minutes": time_mins,
+        "start_coordinates": KOLKATA_START,
+        "end_coordinates": end_coords,
+        "traffic": traffic_label,
+        "primary": primary,
+        "alternatives": alternatives,
+        "distance_km": dist1,
+        "estimated_time_minutes": dur1,
         "route": steps
     }
 
@@ -137,41 +184,63 @@ def calculate_route(destination):
             "message": "Destination not found."
         }
 
-    api_key = os.environ.get("OPENROUTESERVICE_API_KEY") or os.environ.get("ROUTING_API_KEY")
-    if api_key:
-        try:
-            # Attempt live routing geocoding if an API key is provided
-            geo_url = "https://api.openrouteservice.org/geocode/search"
-            resp = requests.get(
-                geo_url,
-                params={"api_key": api_key, "text": cleaned, "size": 1},
-                timeout=3.0
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                features = data.get("features", [])
-                if not features:
-                    return {
-                        "status": "ERROR",
-                        "message": "Destination not found."
-                    }
-                coords = features[0]["geometry"]["coordinates"]
-                # Real route calculation
+    end_coords = _resolve_coordinates(cleaned)
+
+    # Try live OSRM routing
+    try:
+        start_lon, start_lat = KOLKATA_START
+        end_lon, end_lat = end_coords
+        osrm_url = (
+            f"http://router.project-osrm.org/route/v1/driving/"
+            f"{start_lon},{start_lat};{end_lon},{end_lat}"
+            f"?overview=full&geometries=geojson&alternatives=true"
+        )
+        resp = requests.get(osrm_url, timeout=2.5)
+        if resp.status_code == 200:
+            data = resp.json()
+            routes = data.get("routes", [])
+            if routes:
+                primary_route = routes[0]
+                dist1 = round(primary_route["distance"] / 1000.0, 1)
+                dur1 = max(1, round(primary_route["duration"] / 60.0, 1))
+
+                primary = {
+                    "distance_km": dist1,
+                    "duration_min": dur1,
+                    "geometry": primary_route["geometry"]["coordinates"]
+                }
+
+                alternatives = []
+                for alt in routes[1:]:
+                    alternatives.append({
+                        "distance_km": round(alt["distance"] / 1000.0, 1),
+                        "duration_min": max(1, round(alt["duration"] / 60.0, 1)),
+                        "geometry": alt["geometry"]["coordinates"]
+                    })
+
+                traffic = "HEAVY" if dur1 > 25 else ("MODERATE" if dur1 > 10 else "LIGHT")
+
+                steps = [
+                    f"Start from Kolkata current position ({start_lon}, {start_lat})",
+                    f"Head along routed path towards destination",
+                    f"Arrive at {cleaned}"
+                ]
+
                 return {
                     "status": "SUCCESS",
                     "mock": False,
-                    "destination": features[0]["properties"].get("label", cleaned),
-                    "coordinates": coords,
-                    "distance_km": 5.2,
-                    "estimated_time_minutes": 14,
-                    "route": [
-                        "Start from current location",
-                        f"Head towards destination coordinates {coords}",
-                        f"Arrive at {cleaned}"
-                    ]
+                    "destination": cleaned,
+                    "start_coordinates": KOLKATA_START,
+                    "end_coordinates": end_coords,
+                    "traffic": traffic,
+                    "primary": primary,
+                    "alternatives": alternatives,
+                    "distance_km": dist1,
+                    "estimated_time_minutes": dur1,
+                    "route": steps
                 }
-        except Exception:
-            # Fall back to labelled mock if network error or provider fails
-            pass
+    except Exception:
+        pass
 
-    return _calculate_mock_route(cleaned)
+    # Fall back to labelled mock
+    return _get_mock_navigation(cleaned, end_coords)
