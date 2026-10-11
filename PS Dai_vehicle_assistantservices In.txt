@@ -1,0 +1,73 @@
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod "http://127.0.0.1:5000/api/vehicle/status"
+
+
+battery_voltage    : 12.6
+engine_temperature : 89
+rpm                : 2180
+speed              : 68
+tyre_pressure      : 30
+
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod "http://127.0.0.1:5000/api/vehicle/health"
+
+health                                                                vehic
+                                                                      le
+------                                                                -----
+@{health_score=100; overall_status=HEALTHY; warnings=System.Object[]} @{...
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod "http://127.0.0.1:5000/api/safety/status"
+>>
+
+safety                                   vehicle
+------                                   -------
+@{risk_level=LOW; risks=System.Object[]} @{battery_voltage=12.6; engine_...
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod "http://127.0.0.1:5000/api/alerts"
+
+alerts
+------
+{}
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/assistant/query" -Method POST -ContentType "application/json" -Body '{"message":"How is my vehicle?"}'
+
+intent         response
+------         --------
+VEHICLE_HEALTH Your vehicle is healthy with a health score of 100%.
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/assistant/query" -Method POST -ContentType "application/json" -Body '{"message":"Is my car safe?"}'
+
+intent         response
+------         --------
+VEHICLE_HEALTH Your vehicle is healthy with a health score of 100%.
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/assistant/query" -Method POST -ContentType "application/json" -Body '{"message":"Take me to the nearest hospital"}'
+
+intent     response
+------     --------
+NAVIGATION Route to the nearest hospital is 4.8 km and will take approxi...
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/navigation/route" -Method POST -ContentType "application/json" -Body '{"destination":"nearest hospital"}'
+
+
+destination            : nearest hospital
+distance_km            : 4.8
+estimated_time_minutes : 12
+route                  : {Start from current location, Continue straight
+                         for 2 km, Turn right at Main Road, Arrive at
+                         nearest hospital}
+status                 : SUCCESS
+
+
+
+PS D:\ai_vehicle_assistant\services> Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/assistant/query" -Method POST -ContentType "application/json" -Body '{"message":"Is my car safe?"}'
+
+intent response
+------ --------
+SAFETY Your vehicle is currently operating safely.
