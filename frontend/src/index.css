@@ -1,0 +1,61 @@
+/* Cockpit Design Tokens & Driver-Facing Design System */
+:root {
+  --bg-dark: #090b10;
+  --bg-card: #121620;
+  --bg-card-hover: #171d2b;
+  --bg-surface: #1a202e;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(255, 255, 255, 0.18);
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  /* Standardized Status Colors Matching API Statuses */
+  --status-green: #10b981;
+  --status-green-glow: rgba(16, 185, 129, 0.35);
+
+  --status-yellow: #f59e0b;
+  --status-yellow-glow: rgba(245, 158, 11, 0.35);
+
+  --status-red: #ef4444;
+  --status-red-glow: rgba(239, 68, 68, 0.4);
+
+  --status-emergency: #dc2626;
+
+  --accent-cyan: #06b6d4;
+  --accent-blue: #3b82f6;
+
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
