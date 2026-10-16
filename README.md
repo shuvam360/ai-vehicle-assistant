@@ -80,6 +80,13 @@ When running with `VITE_DEMO=1` and `DEMO_MODE=1`, open the **Telemetry Simulato
   - Route telemetry: Primary and alternative distance/duration, dynamic traffic flow pill (`LIGHT`, `MODERATE`, `HEAVY`), and "Simulated data" badge when `mock=true`.
   - Search input with quick destination chips (Hospital, Airport, Station, Fuel, and unresolvable test "The Moon").
   - Prominent "Destination not found" error banner with clear recovery instructions.
-- [ ] **PHASE D: Voice Assistant Dashboard (Web Speech + Emergency Flow)**
+- [x] **PHASE D: Voice Assistant Dashboard (Web Speech + Emergency Flow)**
+  - Web Speech API speech recognition (`webkitSpeechRecognition`) with 4 interactive states: `Idle`, `Listening`, `Thinking`, `Speaking`.
+  - Speech synthesis (`speechSynthesis`) answering driver queries with natural voice output and tap-to-interrupt support.
+  - Multi-intent dialogue history log with detected intent badges (`[VEHICLE_HEALTH]`, `[NAVIGATION]`, `[SAFETY]`, `[ALERTS]`, `[RISK_ANALYSIS]`).
+  - Seamless navigation handoff: Automatically renders `"🗺️ Open Navigation & Route to '<destination>'"` button when navigation intent is detected, prefilling the search input and rendering the Leaflet route upon tab switch.
+  - Resilience & fallbacks: Detects missing Web Speech support (e.g. Firefox) or denied microphone permissions, falling back to a full text command input with status notices.
+  - Automated Emergency Protocol: When an `EMERGENCY` alert appears, co-pilot speaks *"Are you okay?"* and initiates a 10-second countdown while listening for driver confirmation. Affirmative replies (`"yes"`, `"okay"`, `"fine"`) clear the prompt; timeout or distress replies (`"no"`, `"help"`) trigger a full-screen **Emergency Escalation** state with GPS coordinates and EMS dispatch simulation.
+
 
 

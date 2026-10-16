@@ -6,12 +6,23 @@ import { SafetyDashboard } from './components/SafetyDashboard';
 import { NavigationDashboard } from './components/NavigationDashboard';
 import { AssistantDashboard } from './components/AssistantDashboard';
 import { DemoPanel } from './components/DemoPanel';
+import { EmergencyEscalationModal } from './components/EmergencyEscalationModal';
+import { useEmergencyFlow } from './hooks/useEmergencyFlow';
 import './App.css';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('health');
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [navigationDestination, setNavigationDestination] = useState('');
+
+  const {
+    emergencyModalOpen,
+    emergencyStep,
+    countdown,
+    handleConfirmSafe,
+    handleEscalate,
+    handleDismiss,
+  } = useEmergencyFlow(activeAlerts);
 
   const handleNavigateToDestination = (dest) => {
     setNavigationDestination(dest);
@@ -20,6 +31,16 @@ export default function App() {
 
   return (
     <div className="cockpit-app-root">
+      {/* GLOBAL EMERGENCY ESCALATION MODAL */}
+      <EmergencyEscalationModal
+        isOpen={emergencyModalOpen}
+        step={emergencyStep}
+        countdown={countdown}
+        onConfirmSafe={handleConfirmSafe}
+        onEscalate={handleEscalate}
+        onDismiss={handleDismiss}
+      />
+
       {/* GLOBAL HEADER */}
       <Header
         activeTab={activeTab}
@@ -37,7 +58,10 @@ export default function App() {
           <NavigationDashboard initialDestination={navigationDestination} />
         )}
         {activeTab === 'assistant' && (
-          <AssistantDashboard onNavigate={handleNavigateToDestination} />
+          <AssistantDashboard
+            onNavigate={handleNavigateToDestination}
+            activeAlerts={activeAlerts}
+          />
         )}
       </main>
 
