@@ -21,12 +21,26 @@ from services.db_service import (
     get_recent_vehicle_events
 )
 
-# Configure logging
+# Configure logging with context filter to inject request_id into all log records (including Werkzeug)
+class RequestIdLogFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, "request_id"):
+            try:
+                record.request_id = getattr(g, "request_id", "SYSTEM")
+            except Exception:
+                record.request_id = "SYSTEM"
+        return True
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] [ReqID: %(request_id)s] %(message)s"
 )
+for _h in logging.root.handlers:
+    _h.addFilter(RequestIdLogFilter())
+logging.getLogger().addFilter(RequestIdLogFilter())
+
 logger = logging.getLogger("vehicle_assistant")
+logger.addFilter(RequestIdLogFilter())
 
 app = Flask(__name__)
 
@@ -43,13 +57,6 @@ else:
 
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
-# Context filter to automatically inject request_id into log records
-class RequestIdLogFilter(logging.Filter):
-    def filter(self, record):
-        record.request_id = getattr(g, "request_id", "SYSTEM")
-        return True
-
-logger.addFilter(RequestIdLogFilter())
 
 @app.before_request
 def before_request_hook():
