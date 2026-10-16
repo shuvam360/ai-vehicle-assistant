@@ -64,11 +64,16 @@ When running with `VITE_DEMO=1` and `DEMO_MODE=1`, open the **Telemetry Simulato
 
 ## 📦 Implementation Phases
 
-- [x] **PHASE A: Shell, Global Alerts, and Health Dashboard** *(Current)*
+- [x] **PHASE A: Shell, Global Alerts, and Health Dashboard**
   - `usePolling` hook with tab visibility pause and connection-lost tracking.
   - `AlertBanner`: 1.5s polling, color coding (`WARNING` yellow, `CRITICAL` red, `EMERGENCY` flashing red), first-time SpeechSynthesis announcement, and mute toggle.
   - `HealthDashboard`: Overall integrity gauge, 4 component bars (Engine, Battery, Brakes, Tyres), 4-tyre quadrant layout, live metrics grid, warnings line.
   - `DemoPanel`: 6 scenario injection buttons gated to `VITE_DEMO=1`.
-- [ ] **PHASE B: Safety Dashboard** *(Next)*
+- [x] **PHASE B: Safety Dashboard**
+  - Risk level badge: `LOW` (green), `MEDIUM` (yellow), `HIGH` (orange), `CRITICAL` (pulsing red) with dynamic glow and telemetry chips.
+  - Flags list: Driver & vehicle diagnostics separating active hazard warnings (`⚠️`/`🚨`) from passed checks (`✓`).
+  - Recent Events timeline: Auto-refreshing "hard braking, 2 min ago" relative timestamp format with dynamic elapsed counter.
+  - Resilient states: Loading scanner, connection-lost reconnection banner, empty states for flags/events.
 - [ ] **PHASE C: Navigation Dashboard (Leaflet + OSRM)**
 - [ ] **PHASE D: Voice Assistant Dashboard (Web Speech + Emergency Flow)**
+
