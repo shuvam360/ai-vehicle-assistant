@@ -74,6 +74,12 @@ When running with `VITE_DEMO=1` and `DEMO_MODE=1`, open the **Telemetry Simulato
   - Flags list: Driver & vehicle diagnostics separating active hazard warnings (`⚠️`/`🚨`) from passed checks (`✓`).
   - Recent Events timeline: Auto-refreshing "hard braking, 2 min ago" relative timestamp format with dynamic elapsed counter.
   - Resilient states: Loading scanner, connection-lost reconnection banner, empty states for flags/events.
-- [ ] **PHASE C: Navigation Dashboard (Leaflet + OSRM)**
+- [x] **PHASE C: Navigation Dashboard (Leaflet + OpenStreetMap + OSRM)**
+  - Interactive Leaflet map with OpenStreetMap tiles, dark popups, auto-fitting bounds, and custom start/end pins.
+  - Multi-route visualization: Primary route drawn as solid cyan line (`#06b6d4`), alternatives drawn as lighter dashed lines (`#94a3b8`).
+  - Route telemetry: Primary and alternative distance/duration, dynamic traffic flow pill (`LIGHT`, `MODERATE`, `HEAVY`), and "Simulated data" badge when `mock=true`.
+  - Search input with quick destination chips (Hospital, Airport, Station, Fuel, and unresolvable test "The Moon").
+  - Prominent "Destination not found" error banner with clear recovery instructions.
 - [ ] **PHASE D: Voice Assistant Dashboard (Web Speech + Emergency Flow)**
+
 

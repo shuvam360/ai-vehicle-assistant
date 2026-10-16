@@ -11,6 +11,12 @@ import './App.css';
 export default function App() {
   const [activeTab, setActiveTab] = useState('health');
   const [activeAlerts, setActiveAlerts] = useState([]);
+  const [navigationDestination, setNavigationDestination] = useState('');
+
+  const handleNavigateToDestination = (dest) => {
+    setNavigationDestination(dest);
+    setActiveTab('navigation');
+  };
 
   return (
     <div className="cockpit-app-root">
@@ -27,8 +33,12 @@ export default function App() {
       <main className="cockpit-viewport">
         {activeTab === 'health' && <HealthDashboard />}
         {activeTab === 'safety' && <SafetyDashboard />}
-        {activeTab === 'navigation' && <NavigationDashboard />}
-        {activeTab === 'assistant' && <AssistantDashboard />}
+        {activeTab === 'navigation' && (
+          <NavigationDashboard initialDestination={navigationDestination} />
+        )}
+        {activeTab === 'assistant' && (
+          <AssistantDashboard onNavigate={handleNavigateToDestination} />
+        )}
       </main>
 
       {/* DEMO CONTROL PANEL (VISIBLE ONLY WHEN VITE_DEMO=1) */}
